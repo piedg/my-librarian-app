@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,8 +64,7 @@ public class LoanService {
             throw new DuplicateActiveLoanException(userId, bookId);
         }
 
-        // Il decremento atomico: 0 righe modificate = nessuna copia libera.
-        // Non carichiamo il BookEntity prima di questo punto (vedi teoria, punto 3).
+        // 0 righe modificate = nessuna copia libera.
         if (bookRepository.decrementAvailableCopies(bookId) == 0) {
             throw new NoCopiesAvailableException(bookId);
         }
@@ -91,9 +89,8 @@ public class LoanService {
         }
 
         changeState(loan, LoanState.BORROWED);
-        loan.setDueDate(Instant.now().plus(LOAN_DURATION)); // ora è la scadenza di restituzione
+        loan.setDueDate(Instant.now().plus(LOAN_DURATION));
 
-        // nessuna variazione di copie: era già stata tolta alla prenotazione
         log.info("Ritiro: loan = {}", loanId);
         return LoanResponse.from(loan);
     }
@@ -202,7 +199,6 @@ public class LoanService {
     }
 
     private void releaseCopy(LoanEntity loan) {
-        // getBook().getId() su un proxy lazy non esegue query
         Long bookId = loan.getBook().getId();
         if (bookRepository.incrementAvailableCopies(bookId) == 0) {
             log.warn("Copie disponibili già al massimo per il libro {}: dati incoerenti?", bookId);
