@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -64,6 +65,7 @@ public class BookController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookResponse> addBook(@Valid @RequestBody BookRequest request) {
         BookResponse created = bookService.create(request);
 
@@ -73,11 +75,13 @@ public class BookController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public BookResponse updateBook(@PathVariable Long id, @Valid @RequestBody BookRequest request) {
         return bookService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
         bookService.delete(id);
         return ResponseEntity.noContent().build();

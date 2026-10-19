@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -112,8 +113,9 @@ public class LoanService {
     // ---------- Annullamento: RESERVED -> CANCELLED ----------
 
     @Transactional
-    public LoanResponse cancel(Long loanId) {
+    public LoanResponse cancel(Long loanId, Long requesterId, boolean admin) {
         LoanEntity loan = getOrThrow(loanId);
+        assertOwnerOrAdmin(loan, requesterId, admin); // prima del cambio di stato
 
         changeState(loan, LoanState.CANCELLED);
         releaseCopy(loan);
@@ -155,8 +157,10 @@ public class LoanService {
     // ---------- Letture ----------
 
     @Transactional(readOnly = true)
-    public LoanResponse findById(Long id) {
-        return LoanResponse.from(getOrThrow(id));
+    public LoanResponse findById(Long id, Long requesterId, boolean admin) {
+        LoanEntity loan = getOrThrow(id);
+        assertOwnerOrAdmin(loan, requesterId, admin);
+        return LoanResponse.from(loan);
     }
 
     @Transactional(readOnly = true)
@@ -207,5 +211,12 @@ public class LoanService {
 
     private LoanEntity getOrThrow(Long id) {
         return loanRepository.findById(id).orElseThrow(() -> new LoanNotFoundException("id", id));
+    }
+
+    private void assertOwnerOrAdmin(LoanEntity loan, Long requesterId, boolean admin) {
+        // getUser().getId() su un proxy lazy non esegue query
+        if (!admin && !loan.getUser().getId().equals(requesterId)) {
+            throw new AccessDeniedException("Prestito di un altro utente");
+        }
     }
 }

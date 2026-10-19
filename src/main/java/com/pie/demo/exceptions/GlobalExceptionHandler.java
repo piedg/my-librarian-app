@@ -1,5 +1,6 @@
 package com.pie.demo.exceptions;
 
+import org.springframework.security.access.AccessDeniedException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -76,6 +77,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "L'operazione viola un vincolo di integrità dei dati");
     }
 
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ProblemDetail handleEmailExists(EmailAlreadyExistsException ex) {
+        return build(HttpStatus.CONFLICT, "Email già registrata", ex.getMessage());
+    }
+
     // ---------- 400: validazione @Valid ----------
 
     @Override
@@ -107,6 +113,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setTitle(title);
         return problem;
+    }
+
+    // ---------- 403: autenticazione e permessi ----------
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        return build(HttpStatus.FORBIDDEN, "Accesso negato", "Non hai i permessi per questa operazione");
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
+        return build(HttpStatus.UNAUTHORIZED, "Credenziali non valide", ex.getMessage());
     }
 
 }
