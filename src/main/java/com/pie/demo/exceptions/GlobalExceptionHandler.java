@@ -22,6 +22,41 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
+    // ---------- 400: validazione @Valid ----------
+
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex, HttpHeaders headers,
+            HttpStatusCode status, WebRequest request) {
+
+        Map<String, String> errors = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors()
+                .forEach(e -> errors.putIfAbsent(e.getField(), e.getDefaultMessage()));
+
+        ProblemDetail problem = build(HttpStatus.BAD_REQUEST, "Dati non validi",
+                "Uno o più campi non sono validi");
+        problem.setProperty("errors", errors);
+
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    @ExceptionHandler(MissingSearchParameterException.class)
+    public ProblemDetail handleMissingSearchParameter(MissingSearchParameterException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Parametri mancanti", ex.getMessage());
+    }
+
+    // ---------- 401 - 403: autenticazione e permessi ----------
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
+        return build(HttpStatus.UNAUTHORIZED, "Credenziali non valide", ex.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        return build(HttpStatus.FORBIDDEN, "Accesso negato", "Non hai i permessi per questa operazione");
+    }
+
     // -------- 404: Risorse non trovate --------
     @ExceptionHandler(UserNotFoundException.class)
     public ProblemDetail handleUserNotFound(UserNotFoundException ex) {
@@ -82,22 +117,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return build(HttpStatus.CONFLICT, "Email già registrata", ex.getMessage());
     }
 
-    // ---------- 400: validazione @Valid ----------
+    @ExceptionHandler(IsbnAlreadyExistsException.class)
+    public ProblemDetail handleIsbnExists(IsbnAlreadyExistsException ex) {
+        return build(HttpStatus.CONFLICT, "ISBN già esistente", ex.getMessage());
+    }
 
-    @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException ex, HttpHeaders headers,
-            HttpStatusCode status, WebRequest request) {
-
-        Map<String, String> errors = new LinkedHashMap<>();
-        ex.getBindingResult().getFieldErrors()
-                .forEach(e -> errors.putIfAbsent(e.getField(), e.getDefaultMessage()));
-
-        ProblemDetail problem = build(HttpStatus.BAD_REQUEST, "Dati non validi",
-                "Uno o più campi non sono validi");
-        problem.setProperty("errors", errors);
-
-        return ResponseEntity.badRequest().body(problem);
+    @ExceptionHandler(InvalidCopiesException.class)
+    public ProblemDetail handleInvalidCopies(InvalidCopiesException ex) {
+        return build(HttpStatus.CONFLICT, "Copie non valide", ex.getMessage());
     }
 
     // ---------- 500: rete di sicurezza ----------
@@ -113,18 +140,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setTitle(title);
         return problem;
-    }
-
-    // ---------- 403: autenticazione e permessi ----------
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
-        return build(HttpStatus.FORBIDDEN, "Accesso negato", "Non hai i permessi per questa operazione");
-    }
-
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
-        return build(HttpStatus.UNAUTHORIZED, "Credenziali non valide", ex.getMessage());
     }
 
 }
