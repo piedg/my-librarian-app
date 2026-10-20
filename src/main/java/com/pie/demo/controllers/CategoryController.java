@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.pie.demo.dtos.category.CategoryRequest;
 import com.pie.demo.dtos.category.CategoryResponse;
+import com.pie.demo.exceptions.MissingSearchParameterException;
 import com.pie.demo.services.CategoryService;
 
 import jakarta.validation.Valid;
@@ -43,10 +45,11 @@ public class CategoryController {
             return categoryService.findById(id);
         }
 
-        throw new IllegalArgumentException("Almeno uno dei parametri (name o id) deve essere specificato");
+        throw new MissingSearchParameterException("Almeno uno dei parametri (name o id) deve essere specificato");
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CategoryResponse> addCategory(@Valid @RequestBody CategoryRequest request) {
         CategoryResponse created = categoryService.create(request);
 
@@ -55,6 +58,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public CategoryResponse updateCategory(
             @PathVariable Long id,
             @Valid @RequestBody CategoryRequest request) {
@@ -62,6 +66,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
         categoryService.delete(id);
         return ResponseEntity.noContent().build();
