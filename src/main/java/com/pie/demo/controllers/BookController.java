@@ -19,15 +19,21 @@ import com.pie.demo.dtos.book.BookRequest;
 import com.pie.demo.dtos.book.BookResponse;
 import com.pie.demo.services.BookService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/books")
 @RequiredArgsConstructor
+@Tag(name = "Libri", description = "Catalogo e disponibilità")
 public class BookController {
     private final BookService bookService;
 
+    @Operation(summary = "Elenco libri", description = "Filtri opzionali: title (ricerca parziale) e available=true (solo con copie disponibili).")
     @GetMapping
     public List<BookResponse> getBooks(@RequestParam(required = false) String title,
             @RequestParam(defaultValue = "false") boolean available) {
@@ -64,6 +70,13 @@ public class BookController {
         return bookService.findByAuthorId(authorId);
     }
 
+    @Operation(summary = "Crea un libro", description = "Solo ADMIN.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Libro creato"),
+            @ApiResponse(responseCode = "400", description = "Dati non validi"),
+            @ApiResponse(responseCode = "403", description = "Ruolo non sufficiente"),
+            @ApiResponse(responseCode = "409", description = "ISBN già esistente")
+    })
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookResponse> addBook(@Valid @RequestBody BookRequest request) {
@@ -74,12 +87,23 @@ public class BookController {
         return ResponseEntity.created(location).body(created);
     }
 
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Libro modificato"),
+            @ApiResponse(responseCode = "400", description = "Dati non validi"),
+            @ApiResponse(responseCode = "403", description = "Ruolo non sufficiente"),
+            @ApiResponse(responseCode = "409", description = "ISBN già esistente")
+    })
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public BookResponse updateBook(@PathVariable Long id, @Valid @RequestBody BookRequest request) {
         return bookService.update(id, request);
     }
 
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Libro eliminato"),
+            @ApiResponse(responseCode = "404", description = "Libro non trovato"),
+            @ApiResponse(responseCode = "409", description = "Libro trovato in una prenotazione"),
+    })
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteBook(@PathVariable Long id) {

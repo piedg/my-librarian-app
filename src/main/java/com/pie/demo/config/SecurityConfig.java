@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login", "/auth/register").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         // .requestMatchers(HttpMethod.GET, "/books/**").permitAll() SE VOGLIAMO CHE
                         // CHIUNQUE ABBIA ACCESSO ALLA LIBRERIA
                         .anyRequest().authenticated())
